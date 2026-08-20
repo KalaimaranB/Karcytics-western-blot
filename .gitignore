@@ -9,6 +9,16 @@ venv/
 ENV/
 env/
 
+# Tool caches
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# Generated docs site (built by `mkdocs build`, deployed via CI)
+site/
+
 # OS-specific files
 .DS_Store
 Thumbs.db
@@ -18,3 +28,16 @@ Thumbs.db
 *.key
 private.key
 dev_private_key.pem
+
+# Build and packaging
+build/
+dist/
+*.egg-info/
+*.egg
+
+# IDEs
+.vscode/
+.idea/
+
+# Karcytics specific
+.plugin_venv/

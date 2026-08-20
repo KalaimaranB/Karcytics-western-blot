@@ -1,23 +1,5 @@
 name: Auto-Release Plugin
 
-# ─────────────────────────────────────────────────────────────────────────────
-# HOW TO USE THIS TEMPLATE
-#
-# 1. Copy this file into your plugin repo's .github/workflows/release.yml
-# 2. Add ONE GitHub repository secret named BIOPRO_DEV_PRIVATE_KEY:
-#    - Go to: Settings → Secrets and variables → Actions → New repository secret
-#    - Name:  BIOPRO_DEV_PRIVATE_KEY
-#    - Value: Paste the full contents of ~/.biopro/dev_private_key.pem
-# 3. Add ONE more secret named DIST_PAT:
-#    - This is a GitHub Personal Access Token with repo scope
-#    - It allows the workflow to open a PR on BioPro-Distribution
-# 4. To release:
-#    - Manually bump the "version" field in your `manifest.json` (e.g. "1.1.0")
-#    - `git commit` and `git push` to main.
-#    - The CI will detect the new version, tag it, sign it, and release it automatically.
-#    - If you push WITHOUT bumping the version, the CI will gracefully skip the release.
-# ─────────────────────────────────────────────────────────────────────────────
-
 on:
   push:
     branches:
@@ -38,25 +20,60 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
       - name: Check Version
         id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          PLUGIN_ID=$(jq -r .id manifest.json)
-          VERSION=$(jq -r .version manifest.json)
-          RELEASE_NOTES=$(jq -r '.release_notes // "No release notes provided."' manifest.json)
+          python -c "
+          import sys
+          if sys.version_info >= (3, 11):
+              import tomllib as toml
+          else:
+              import toml
+
+          with open('pyproject.toml', 'rb') as f:
+              data = toml.load(f)
+
+          project = data.get('project', {})
+          plugin = data.get('tool', {}).get('karcytics', {}).get('plugin', {})
+
+          plugin_id = plugin.get('id', '')
+          version = project.get('version', '')
+          release_notes = plugin.get('release_notes', 'No release notes provided.')
+
+          import os
+          import uuid
+
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f'plugin_id={plugin_id}\n')
+              f.write(f'version={version}\n')
+
+              eof_marker = str(uuid.uuid4())
+              f.write(f'release_notes<<{eof_marker}\n')
+              f.write(f'{release_notes}\n')
+              f.write(f'{eof_marker}\n')
+          "
+          # A version only "ships" once a GitHub Release for its tag actually
+          # exists - checking that (instead of just a git tag) matters because
+          # the tag alone can exist without a release ever being published:
+          # a signing or test failure would still leave a tag behind with
+          # nothing to show for it, and every retry at that version would get
+          # silently skipped forever after. The tag itself is only created by
+          # action-gh-release, atomically with the release it belongs to (see
+          # the release job below), so this can't drift from reality.
+          VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
           TAG_NAME="v$VERSION"
-          
-          echo "plugin_id=$PLUGIN_ID" >> $GITHUB_OUTPUT
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          
-          # Handle multi-line strings safely in GITHUB_OUTPUT
-          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
-          echo "release_notes<<$EOF" >> $GITHUB_OUTPUT
-          echo "$RELEASE_NOTES" >> $GITHUB_OUTPUT
-          echo "$EOF" >> $GITHUB_OUTPUT
-          
-          if git ls-remote --tags origin | grep -q "refs/tags/$TAG_NAME"; then
+
+          if gh release view "$TAG_NAME" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             echo "Version $VERSION already released. Skipping build."
             echo "changed=false" >> $GITHUB_OUTPUT
           else
@@ -64,28 +81,180 @@ jobs:
             echo "changed=true" >> $GITHUB_OUTPUT
           fi
 
+  # Cheap, standalone integrity check (pure stdlib - no karcytics_sdk import,
+  # so no Qt system deps needed) that fails fast if security.json no longer
+  # matches this commit's files, instead of only discovering that after the
+  # full lint + 2-OS test matrix, at the very last step of the release job.
+  # See scripts/verify_security_ledger.py for what this mirrors and why.
+  verify-security-ledger:
+    name: Verify Security Ledger
+    needs: check_version
+    if: needs.check_version.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Verify security.json matches this commit
+        run: python3 scripts/verify_security_ledger.py
+
+  lint-and-audit:
+    name: Lint, Types & Security (Ubuntu)
+    needs: [check_version, verify-security-ledger]
+    if: needs.check_version.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up uv and Python
+        uses: astral-sh/setup-uv@887a942a15af3a7626099df99e897a18d9e5ab3a # v5.2.2
+        with:
+          python-version: "3.11"
+          enable-cache: true
+
+      - name: Checkout Karcytics-SDK
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: KalaimaranB/Karcytics-SDK
+          path: Karcytics-SDK
+          persist-credentials: false
+
+      - name: Install dependencies
+        run: |
+          python3 -c "import sys; c=open('pyproject.toml').read(); open('pyproject.toml','w').write(c.replace('\"../Karcytics-SDK\"', '\"./Karcytics-SDK\"'))"
+          uv sync --all-extras
+        shell: bash
+
+      - name: Ruff — Lint
+        run: uv run ruff check src/ tests/
+        shell: bash
+
+      - name: Ruff — Format check
+        run: uv run ruff format --check src/ tests/
+        shell: bash
+
+      - name: Mypy — Type check (analysis strict, UI suppressed)
+        run: uv run mypy --explicit-package-bases src/
+        shell: bash
+
+      - name: pip-audit — Security vulnerability scan
+        run: |
+          uv export --format requirements-txt --no-emit-project | grep -v "^-e " | grep -v "Karcytics-SDK" > reqs.txt
+          uv run --with pip-audit pip-audit -r reqs.txt --no-deps --disable-pip
+        shell: bash
+
+  test:
+    name: Tests (${{ matrix.os }})
+    needs: [check_version, lint-and-audit]
+    if: needs.check_version.outputs.changed == 'true'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up uv and Python
+        uses: astral-sh/setup-uv@887a942a15af3a7626099df99e897a18d9e5ab3a # v5.2.2
+        with:
+          python-version: "3.11"
+          enable-cache: true
+
+      # Windows Defender's real-time scanner inspects every .pyd/.dll
+      # individually as it's touched — numpy/scipy/pandas/PyQt6 collectively
+      # touch hundreds of them on import, which is a well-documented 2-3x
+      # slowdown multiplier for Python scientific-stack CI on windows-latest,
+      # independent of anything this workflow or the plugin does. Excluding
+      # the workspace and uv's cache dir (RUNNER_TEMP) removes that overhead
+      # for install, import, and the test run alike.
+      - name: Exclude workspace from Windows Defender
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          Add-MpPreference -ExclusionPath "${{ github.workspace }}"
+          Add-MpPreference -ExclusionPath "${{ runner.temp }}"
+
+      # TEMPORARY diagnostic (see PR discussion): Add-MpPreference reports
+      # success even when a centrally-managed/tamper-protected Defender
+      # policy silently ignores it — the step above has never once errored,
+      # which is not the same as the exclusion actually being registered.
+      # This prints what Defender itself thinks its exclusion list is, so
+      # the next failure's log says definitively whether that's the case
+      # instead of us continuing to assume either way.
+      - name: Verify Windows Defender exclusion took effect
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          Write-Host "MpPreference exclusion paths:"
+          (Get-MpPreference).ExclusionPath
+          Write-Host "MpComputerStatus (real-time protection / tamper protection):"
+          Get-MpComputerStatus | Select-Object RealTimeProtectionEnabled, IsTamperProtected | Format-List
+
+      - name: Checkout Karcytics-SDK
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: KalaimaranB/Karcytics-SDK
+          path: Karcytics-SDK
+          persist-credentials: false
+
+      - name: Install dependencies
+        run: |
+          python -c "import sys; c=open('pyproject.toml').read(); open('pyproject.toml','w').write(c.replace('\"../Karcytics-SDK\"', '\"./Karcytics-SDK\"'))"
+          uv sync --all-extras
+        shell: bash
+
+      # matplotlib builds its font cache from scratch on a first import if
+      # MPLCONFIGDIR has nothing in it yet — every GH-hosted runner is a
+      # fresh VM, so without this every run pays that cost again, and it's
+      # measurably worse on windows-latest (font enumeration + Defender
+      # scanning every font file). Pinning MPLCONFIGDIR to a fixed path lets
+      # actions/cache persist that one-time cost across runs instead.
+      - name: Cache matplotlib font cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/mplconfig
+          key: mpl-fontcache-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+
+      - name: Run tests
+        run: uv run pytest tests/ -x -v --tb=short --cov=src --cov-report=term-missing
+        env:
+          QT_QPA_PLATFORM: offscreen
+          MPLCONFIGDIR: ${{ runner.temp }}/mplconfig
+        shell: bash
+
   release:
     name: Evaluate, Sign & Release
-    needs: check_version
+    needs: [check_version, test]
     if: needs.check_version.outputs.changed == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      # ── 1. Checkout ──────────────────────────────────────────────────────
+      # Pinned to the commit that triggered this run, not the branch's current
+      # tip — without this, a push to main while an earlier run is still
+      # mid-flight (blocked behind lint/test) makes this job silently check
+      # out newer, unsigned code alongside the earlier commit's security.json,
+      # shipping a release whose files don't match what was actually signed.
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
 
-      # ── 2. Tag Repository ────────────────────────────────────────────────
-      - name: Tag Repository
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          TAG_NAME="v${{ needs.check_version.outputs.version }}"
-          git tag $TAG_NAME
-          git push origin $TAG_NAME
+      - name: Install uv
+        uses: astral-sh/setup-uv@v2
+        with:
+          version: "latest"
 
-      # ── 3. Python Setup ──────────────────────────────────────────────────
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -94,61 +263,23 @@ jobs:
       - name: Install Qt System Dependencies
         run: sudo apt-get update && sudo apt-get install -y libegl1 libxkbcommon-x11-0 libxcb-cursor0
 
-      - name: Clone BioPro Core (for SDK access)
+      - name: Install Karcytics SDK
         run: |
-          git clone --depth=1 https://github.com/KalaimaranB/BioPro.git /tmp/biopro-core
-          grep -v -E "torch|cellpose|llama-cpp|nvidia" /tmp/biopro-core/requirements.txt > /tmp/biopro-core/ci-requirements.txt
-          pip install -r /tmp/biopro-core/ci-requirements.txt
-          pip install biopro-sdk
+          uv pip install --system git+https://github.com/KalaimaranB/Karcytics-SDK.git
 
-      # ── 4. Inject Signing Key & Delegation ────────────────────────────────
-      - name: Restore Developer Signing Key and Delegation Certificate
-        run: |
-          mkdir -p ~/.biopro/dev_keys
-          
-          # Restore private key in both locations for compatibility
-          echo "${{ secrets.BIOPRO_DEV_PRIVATE_KEY }}" > ~/.biopro/dev_private_key.pem
-          echo "${{ secrets.BIOPRO_DEV_PRIVATE_KEY }}" > ~/.biopro/dev_keys/private.key
-          chmod 600 ~/.biopro/dev_private_key.pem ~/.biopro/dev_keys/private.key
-          
-          # Restore delegation JSON
-          echo '${{ secrets.BIOPRO_DEV_DELEGATION }}' > ~/.biopro/dev_keys/delegation.json
-          chmod 600 ~/.biopro/dev_keys/delegation.json
-          
-          # Generate legacy dev_cert.bin from delegation JSON
-          python3 -c "
-          import json, os
-          try:
-              with open(os.path.expanduser('~/.biopro/dev_keys/delegation.json')) as f:
-                  data = json.load(f)
-                  link = data[0] if isinstance(data, list) else data
-              subject_pub = bytes.fromhex(link['subject_pub'])
-              signature = bytes.fromhex(link['signature'])
-              with open(os.path.expanduser('~/.biopro/dev_cert.bin'), 'wb') as outf:
-                  outf.write(subject_pub + signature)
-              print('Successfully generated ~/.biopro/dev_cert.bin from delegation!')
-          except Exception as e:
-              print('Warning: Failed to generate dev_cert.bin: ' + str(e))
-          "
-
-      # ── 5. SDK Evaluate (Quality Gate) ───────────────────────────────────
       - name: SDK Evaluate Plugin
-        continue-on-error: true
         run: |
-          cd /tmp/biopro-core
-          python -m biopro sdk evaluate "${{ github.workspace }}"
+          karcytics-sdk evaluate .
         env:
           QT_QPA_PLATFORM: offscreen
 
-      # ── 6. SDK Sign ───────────────────────────────────────────────────────
-      - name: Sign Plugin
+      - name: Execute Project Signing
         run: |
-          cd /tmp/biopro-core
-          python -m biopro sdk sign "${{ github.workspace }}"
+          karcytics-sdk project-sign . --delegation .ci_keys/runner_delegation.json
         env:
+          KARCYTICS_PROJECT_PRIVATE_KEY: ${{ secrets.KARCYTICS_PROJECT_PRIVATE_KEY }}
           QT_QPA_PLATFORM: offscreen
 
-      # ── 7. Build ZIP (excluding development noise) ────────────────────────
       - name: Build Release ZIP
         run: |
           PLUGIN_ID="${{ needs.check_version.outputs.plugin_id }}"
@@ -160,13 +291,13 @@ jobs:
             --exclude "*tests/*" \
             --exclude "*__pycache__/*" \
             --exclude "*.venv/*" \
+            --exclude "*.plugin_venv/*" \
             --exclude "*.DS_Store" \
             --exclude "*.pem" \
             --exclude "*.key" \
             --exclude "*.pytest_cache/*" \
             --exclude "*.github/*"
 
-      # ── 8. Publish GitHub Release ─────────────────────────────────────────
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -175,64 +306,8 @@ jobs:
           body: |
             ### Release Notes
             ${{ needs.check_version.outputs.release_notes }}
-            
+
             ---
             *Auto-generated changes below:*
           generate_release_notes: true
           files: "${{ needs.check_version.outputs.plugin_id }}_v${{ needs.check_version.outputs.version }}.zip"
-
-      # ── 9. Open PR to BioPro-Distribution to bump registry.json ──────────
-      - name: Checkout BioPro-Distribution
-        uses: actions/checkout@v4
-        with:
-          repository: KalaimaranB/BioPro-Distribution
-          token: ${{ secrets.DIST_PAT }}
-          path: dist-repo
-
-      - name: Update registry.json
-        run: |
-          cd dist-repo
-          python3 - <<'EOF'
-          import json, sys
-          
-          with open("registry.json") as f:
-              reg = json.load(f)
-              
-          plugin_id = "${{ needs.check_version.outputs.plugin_id }}"
-          new_version = "${{ needs.check_version.outputs.version }}"
-          tag_name = f"v{new_version}"
-          zip_name = f"{plugin_id}_{tag_name}.zip"
-          download_url = f"https://github.com/${{ github.repository }}/releases/download/{tag_name}/{zip_name}"
-          
-          if plugin_id in reg.get("plugins", {}):
-              reg["plugins"][plugin_id]["version"] = new_version
-              reg["plugins"][plugin_id]["download_url"] = download_url
-              
-              with open("registry.json", "w") as f:
-                  json.dump(reg, f, indent=2)
-              print(f"Updated {plugin_id} in registry.json")
-          else:
-              print(f"Error: {plugin_id} not found in registry.json")
-              sys.exit(1)
-          EOF
-
-      - name: Open Registry Update PR
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.DIST_PAT }}
-          path: dist-repo
-          branch: "auto/update-${{ needs.check_version.outputs.plugin_id }}-v${{ needs.check_version.outputs.version }}"
-          title: "chore: bump ${{ needs.check_version.outputs.plugin_id }} to v${{ needs.check_version.outputs.version }}"
-          commit-message: "chore: bump ${{ needs.check_version.outputs.plugin_id }} to ${{ needs.check_version.outputs.version }}"
-          body: |
-            ## Automated Registry Update
-
-            Plugin **`${{ needs.check_version.outputs.plugin_id }}`** was released at tag `v${{ needs.check_version.outputs.version }}`.
-
-            ### Developer Release Notes
-            > ${{ needs.check_version.outputs.release_notes }}
-
-            This PR updates `registry.json` with the latest version.
-
-            > ⚠️ **Review before merging:** Verify the download URL is correct and the ZIP is valid.
-          add-paths: registry.json

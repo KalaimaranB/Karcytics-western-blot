@@ -1,0 +1,92 @@
+line-length = 100
+target-version = "py311"
+
+[lint]
+# Full Google-grade rule set — matches Karcytics core and exceeds it where relevant
+select = [
+    "E",      # pycodestyle errors
+    "F",      # pyflakes
+    "W",      # pycodestyle warnings
+    "I",      # isort
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "D",      # pydocstyle
+    "C90",    # McCabe complexity
+    "PLR",    # Pylint refactor
+    "SIM",    # flake8-simplify
+    "N",      # pep8-naming
+    "A",      # flake8-builtins (shadowing)
+    "RET",    # flake8-return
+    "C4",     # flake8-comprehensions
+    "ARG",    # flake8-unused-arguments
+    "TID251", # banned imports (PyQt6 in analysis layer)
+    "T20",    # flake8-print
+]
+ignore = [
+    "E501",  # Line too long (handled by formatter)
+    "E722",  # Bare excepts
+    "D100",  # Missing docstring in public module
+    "D101",  # Missing docstring in public class
+    "D102",  # Missing docstring in public method
+    "D103",  # Missing docstring in public function
+    "D104",  # Missing docstring in public package
+    "D105",  # Missing docstring in magic method
+    "D106",  # Missing docstring in public nested class
+    "D107",  # Missing docstring in __init__
+    "D205",  # 1 blank line between summary and description
+    "D417",  # Missing argument descriptions in docstring
+    "B024",  # ABC with no abstract methods
+    "B027",  # Empty hooks in ABCs without abstract decorator
+]
+
+[lint.mccabe]
+max-complexity = 10
+
+[lint.pylint]
+max-args = 7
+max-branches = 12
+
+[lint.pydocstyle]
+convention = "google"
+
+[lint.isort]
+known-first-party = ["karcytics_plugins"]
+
+[lint.flake8-tidy-imports.banned-api]
+"PyQt6" = { msg = "Do not import PyQt6. The analysis layer must not depend on UI frameworks." }
+
+[lint.extend-per-file-ignores]
+# UI files: Qt uses camelCase overrides and optional event args — relax naming/arg rules
+"**/ui/**/*.py" = [
+    "TID251",   # PyQt6 allowed in UI
+    "N802", "N803", "N806", "N815",  # Qt camelCase conventions
+    "ARG001", "ARG002", "ARG005",    # Qt event handlers have mandatory unused args
+    "PLR0912", "PLR0917",            # Complex Qt widget methods are unavoidable
+    "SIM102", "SIM105", "SIM108", "SIM110",  # Qt patterns don't always simplify cleanly
+    "C408",    # dict() calls are idiomatic in Qt widget config
+    "RET504",  # Early returns in Qt event handlers can reduce clarity
+    "C901",    # Complex Qt widget orchestrators are architecturally unavoidable
+    # ── Pre-existing debt from before this lint config existed ──────────
+    # This plugin predates the ruff config being enforced here; its dense
+    # scientific-visualization/UI code has magic thresholds and long
+    # methods that would need a real refactor (not a mechanical fix) to
+    # resolve safely. Scoped out of the biopro->karcytics_sdk migration
+    # deliberately — tracked as follow-up code-quality work, not silently
+    # dropped.
+    "PLR2004", "PLR0915", "PLR0913", "PLR0911",
+]
+# Analysis files: same pre-existing-debt rationale as ui/** above, for the
+# scientific algorithm code (lane/band detection, densitometry math).
+"**/analysis/**/*.py" = [
+    "PLR2004", "PLR0915", "PLR0912", "PLR0913", "PLR0911", "PLR0917", "C901",
+]
+"__init__.py" = ["TID251", "F401"]
+# Tests: relax style/complexity so tests stay readable
+"**/tests/**/*.py" = [
+    "TID251", "PLR2004", "PLR0915", "PLR0913", "PLR0917",
+    "B018", "D415", "F841",
+    "ARG001", "ARG002", "ARG005",
+    "N802", "N806",
+    "SIM", "C4", "RET504",
+    "T20",
+]
