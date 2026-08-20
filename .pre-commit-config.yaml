@@ -1,0 +1,71 @@
+fail_fast: false
+repos:
+  - repo: local
+    hooks:
+      # ── 1. Lint (auto-fix) ────────────────────────────────────────────────
+      - id: ruff-linter
+        name: Ruff Linter
+        entry: uv run ruff check src/ tests/ --fix
+        language: system
+        types_or: [python]
+        pass_filenames: false
+        always_run: true
+
+      # ── 2. Format ─────────────────────────────────────────────────────────
+      - id: ruff-formatter
+        name: Ruff Formatter
+        entry: uv run ruff format src/ tests/
+        language: system
+        types_or: [python]
+        pass_filenames: false
+        always_run: true
+
+      # ── 3. Type check (analysis layer strict; UI suppressed via mypy config)
+      - id: mypy
+        name: Mypy Type Checker
+        entry: uv run mypy --explicit-package-bases src/
+        language: system
+        pass_filenames: false
+
+      # ── 4. Security audit ─────────────────────────────────────────────────
+      - id: pip-audit
+        name: Dependency Security Audit
+        entry: bash -c 'uv export --format requirements-txt --no-emit-project | grep -v "^-e " | grep -v -i "karcytics" > /tmp/wb_reqs.txt && uv run --with pip-audit pip-audit -r /tmp/wb_reqs.txt --no-deps --disable-pip'
+        language: system
+        pass_filenames: false
+
+      # ── 5. Unit tests (fast, headless — functional/UI tests run in CI) ────
+      - id: pytest
+        name: Unit Test Suite
+        entry: uv run pytest tests/unit/ --tb=short -q
+        language: system
+        pass_filenames: false
+
+      # ── 6. Karcytics SDK signing ─────────────────────────────────────────────
+      # Always runs (even if 1-5 failed, since fail_fast is false) and always
+      # regenerates security.json/signature.bin to match the current tree, so
+      # it reports "modified files" the first time anything drifts. That is
+      # not a real failure - re-add and commit again and it'll be clean.
+      - id: karcytics-sign
+        name: Karcytics SDK Sign
+        entry: bash -c 'PLUGIN_ID=$(grep "^id =" pyproject.toml | head -1 | cut -d"\"" -f2); ln -sfn "$PWD" "$PWD/../$PLUGIN_ID" && karcytics-sdk sign "$PWD/../$PLUGIN_ID"; rm "$PWD/../$PLUGIN_ID"'
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      # ── 7. Pre-push safety net ───────────────────────────────────────────
+      # karcytics-sign only runs on `git commit`. A commit made with
+      # --no-verify (or a version bump added after the last time sign ran,
+      # then committed with --no-verify) skips it entirely, and nothing else
+      # locally would catch that before it reaches CI. This is read-only
+      # (never mutates - a mutating hook here can't actually block a push,
+      # since git push doesn't care about working-tree changes made after
+      # the commit), so it can genuinely fail and stop the push. Requires
+      # `pre-commit install --hook-type pre-push` once per clone.
+      - id: verify-security-ledger
+        name: Verify Security Ledger (pre-push)
+        entry: python3 scripts/verify_security_ledger.py
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]

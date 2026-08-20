@@ -1,0 +1,126 @@
+[project]
+name = "western_blot"
+version = "1.2.3"
+readme = "README.md"
+requires-python = ">=3.11, <3.13"
+authors = [
+  { name = "Kalaimaran Balasothy" },
+]
+dependencies = [
+    "karcytics-sdk>=2.0.5",
+    "numpy==1.26.4",
+    "pandas==3.0.3",
+    "matplotlib==3.11.0",
+    "scipy==1.17.1",
+    "scikit-image>=0.24.0, <1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0, <9.0",
+    "pytest-qt>=4.3, <5.0",
+    "pytest-cov>=4.1, <5.0",
+    "pytest-timeout>=2.3, <3.0",
+    "ruff>=0.16, <1.0",
+    "mypy>=1.9, <2.0",
+    "pip-audit>=2.7, <3.0",
+    "pre-commit>=3.6, <4.0",
+]
+
+[tool.karcytics.plugin]
+id = "western_blot"
+display_name = "Western Blot Densitometry"
+min_core_version = "2.0.0"
+entry_point = "karcytics_plugins.western_blot:initialize"
+process_model = "isolated"
+requires = ["task_scheduler", "logger", "event_bus"]
+tags = ["western blot", "densitometry", "ponceau", "gel electrophoresis", "protein quantification", "bioinformatics"]
+homepage = "https://github.com/KalaimaranB/Karcytics-western-blot"
+# tests/ is excluded from the release ZIP (see .github/workflows/release.yml's
+# "Build Release ZIP" step), so it must never be hashed into security.json either
+# — otherwise the shipped ledger claims files that were never packaged, and
+# install-time discovery correctly rejects the plugin as UNTRUSTED.
+custom_exclusions = ["tests"]
+description = """
+A high-precision pipeline for quantifying Western Blot and Ponceau S stains. \
+Replicates the gold-standard ImageJ densitometry protocol while removing human bias through \
+automated lane mapping, rolling-ball baseline subtraction, and objective peak-finding.\
+"""
+authors = [
+  { name = "Kalaimaran Balasothy", role = "Lead Developer", permissions = ["sign_code"], github = "KalaimaranB", avatar_url = "https://avatars.githubusercontent.com/u/166263319?v=4", details = "Biomedical Engineering student (Bioinformatics & Cellular Engineering) at UBC. Lead architect of Karcytics, specializing in cellular informatics, multi-dimensional lab data processing, and software automation." },
+]
+
+[tool.karcytics.plugin.signing]
+# Author's Ed25519 public key — trust root: Karcytics Core Authority → Kalaimaran Balasothy
+# Verified by trust_chain.json (signature issued by Karcytics Core Authority)
+author_public_key = "4a2f07ed63d33c1b5aeb39405a7e7979d93d899836920818a6da317f65c6c6a5"
+
+# Delegated keys: author signs for these identities (e.g. CI/CD bots)
+# Verified by .ci_keys/runner_delegation.json (signature issued by author)
+[[tool.karcytics.plugin.signing.delegated_keys]]
+name = "Karcytics Western Blot CI Pipeline"
+public_key = "5ba1b30e5476230bf9d3a448aa2c2fdc424303b58841e56ec50e5e4110ef6015"
+signed_by = "Kalaimaran Balasothy"
+role = "ci_runner"
+
+
+# ── Pytest ────────────────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+timeout = 120
+timeout_method = "thread"
+markers = [
+    "unit: unit tests (fast, headless)",
+    "functional: functional/integration tests",
+    "slow: slow running tests",
+    "edge_case: edge case tests",
+    "ui: tests that require Qt/display",
+    "integration: integration tests",
+]
+
+# ── Mypy ──────────────────────────────────────────────────────────────────────
+[tool.mypy]
+explicit_package_bases = true
+namespace_packages = true
+mypy_path = "src"
+
+[[tool.mypy.overrides]]
+# Third-party packages without bundled type stubs
+module = [
+    "PyQt6.*",
+    "numpy.*",
+    "scipy.*",
+    "pandas.*",
+    "matplotlib.*",
+    "skimage.*",
+    "mpl_toolkits.*",
+    "karcytics_sdk.*",
+    "karcytics.*",
+    "sip.*",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# Pre-existing debt from before this mypy config was enforced: WesternBlotPanel
+# follows the SDK's documented pattern of attaching extra state directly onto
+# a WizardPanel instance at runtime (wizard.analyzer = ..., see
+# ui/western_blot_panel.py's _on_start_analysis), which mypy can't see since
+# WizardPanel itself doesn't declare those attributes. Disabling attr-defined/
+# union-attr here (not repo-wide) rather than annotating ~300 individual call
+# sites by hand — scoped out of the biopro->karcytics_sdk migration
+# deliberately, tracked as follow-up, not silently dropped.
+module = ["karcytics_plugins.western_blot.ui.*"]
+disable_error_code = ["attr-defined", "union-attr"]
+ignore_missing_imports = true
+
+[tool.uv.sources]
+karcytics-sdk = { path = "../Karcytics-SDK", editable = true }
+
+[dependency-groups]
+dev = [
+    "pyqt6>=6.11.0, <7.0.0",
+]

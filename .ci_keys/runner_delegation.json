@@ -1,0 +1,14 @@
+[
+    {
+        "subject_name": "Karcytics Western Blot CI Pipeline",
+        "subject_pub": "5ba1b30e5476230bf9d3a448aa2c2fdc424303b58841e56ec50e5e4110ef6015",
+        "issuer_name": "Kalaimaran Balasothy",
+        "signature": "3d3d70755221309755711d5fbc2e69a7271c796cf52e2f361b30ac8f89fda386afca2d7e72ff175b0fa47b0766fb9ab7b2daf90cd6d5a11ce30c8a8aa00b050c"
+    },
+    {
+        "subject_name": "Kalaimaran Balasothy",
+        "subject_pub": "4a2f07ed63d33c1b5aeb39405a7e7979d93d899836920818a6da317f65c6c6a5",
+        "issuer_name": "Karcytics Core Authority",
+        "signature": "9833f41123c96c3a171cfc516d754744de97aebaf3d497b9b34685ce6a5d223d13238540b99e270010ea32823976173a80361f21c2a189f02aea131f1bf7be02"
+    }
+]
