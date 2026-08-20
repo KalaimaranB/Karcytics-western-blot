@@ -1,6 +1,6 @@
 [project]
 name = "western_blot"
-version = "1.2.2"
+version = "1.2.3"
 readme = "README.md"
 requires-python = ">=3.11, <3.13"
 authors = [
