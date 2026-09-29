@@ -33,6 +33,7 @@ display_name = "Western Blot Densitometry"
 min_core_version = "2.0.0"
 entry_point = "karcytics_plugins.western_blot:initialize"
 process_model = "isolated"
+is_beta = true
 requires = ["task_scheduler", "logger", "event_bus"]
 tags = ["western blot", "densitometry", "ponceau", "gel electrophoresis", "protein quantification", "bioinformatics"]
 homepage = "https://github.com/KalaimaranB/Karcytics-western-blot"
