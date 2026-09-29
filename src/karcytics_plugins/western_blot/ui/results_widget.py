@@ -173,7 +173,7 @@ class DensityChart(QWidget):
                 fontsize=13,
                 transform=self.axes.transAxes,
             )
-            self.draw()
+            self.canvas.draw()
             return
 
         use_pon = mode == "ponceau" and "ponceau_normalized" in df.columns
@@ -266,7 +266,7 @@ class DensityChart(QWidget):
                 fontsize=12,
                 transform=self.axes.transAxes,
             )
-            self.draw()
+            self.canvas.draw()
             return
 
         sample = df[~df["is_ladder"]] if "is_ladder" in df.columns else df
@@ -315,7 +315,7 @@ class DensityChart(QWidget):
         )
 
         self.fig.tight_layout()
-        self.draw()
+        self.canvas.draw()
 
     def save_chart(self, path: Path) -> None:
         self.fig.savefig(

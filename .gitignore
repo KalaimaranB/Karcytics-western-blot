@@ -39,5 +39,8 @@ dist/
 .vscode/
 .idea/
 
+# Claude Code local settings (can contain machine-specific absolute paths)
+.claude/
+
 # Karcytics specific
 .plugin_venv/
