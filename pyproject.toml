@@ -2,6 +2,7 @@
 name = "western_blot"
 version = "1.2.3"
 readme = "README.md"
+license = { file = "LICENSE" }
 requires-python = ">=3.11, <3.13"
 authors = [
   { name = "Kalaimaran Balasothy" },
