@@ -8,7 +8,7 @@ import pandas as pd
 from karcytics_sdk.plugin import WizardPanel, WizardStep
 from karcytics_sdk.plugin.dialogs import SaveWorkflowDialog
 from karcytics_sdk.plugin.theme_fallback import Colors
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QGroupBox,

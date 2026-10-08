@@ -10,7 +10,7 @@ import logging
 
 from karcytics_sdk.plugin import WizardPanel, WizardStep
 from karcytics_sdk.plugin.theme_fallback import Colors
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QCheckBox,
     QGroupBox,
     QLabel,

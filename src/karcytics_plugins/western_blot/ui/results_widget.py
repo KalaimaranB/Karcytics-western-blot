@@ -7,8 +7,8 @@ from pathlib import Path
 import pandas as pd
 from karcytics_sdk.plugin import BioCaptionLabel, BioSpinBox, BioTableWidget, SecondaryButton
 from karcytics_sdk.plugin.theme_fallback import Colors, theme_manager
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
     QAbstractItemView,
     QButtonGroup,
     QDialog,
@@ -78,7 +78,7 @@ class DataTableDialog(QDialog):
         table.setRowCount(len(df))
         table.setHorizontalHeaderLabels([col_labels.get(c, c) for c in cols])
 
-        from PyQt6.QtGui import QColor as _QColor
+        from PySide6.QtGui import QColor as _QColor
 
         fg_primary = _QColor(Colors.FG_PRIMARY)
         accent_primary = _QColor(Colors.ACCENT_PRIMARY)

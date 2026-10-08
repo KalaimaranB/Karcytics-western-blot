@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 from karcytics_sdk.plugin import WizardPanel, WizardStep
 from karcytics_sdk.plugin.theme_fallback import Colors
-from PyQt6.QtWidgets import QCheckBox, QLabel, QPushButton, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QCheckBox, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from .base_step import BaseStepWidget
 

@@ -11,8 +11,8 @@ from pathlib import Path
 import numpy as np
 from karcytics_sdk.plugin import PrimaryButton, WizardPanel, WizardStep, get_image_path, show_error
 from karcytics_sdk.plugin.theme_fallback import Colors
-from PyQt6.QtCore import QRectF
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import QRectF
+from PySide6.QtWidgets import (
     QCheckBox,
     QDoubleSpinBox,
     QGroupBox,
@@ -567,7 +567,7 @@ class BaseLoadStep(WizardStep):
                 self._panel.image_changed.emit(base)
             crop = analyzer.state.manual_crop_rect
             if crop is not None and self._canvas is not None:
-                from PyQt6.QtCore import QRectF
+                from PySide6.QtCore import QRectF
 
                 x, y, w, h = crop
                 self._canvas.show_crop_preview(QRectF(x, y, w, h))

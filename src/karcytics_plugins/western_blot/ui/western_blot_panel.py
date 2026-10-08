@@ -13,10 +13,10 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from karcytics_sdk.plugin import PluginBase
+from karcytics_sdk.plugin import PluginBase, safe_disconnect
 from karcytics_sdk.plugin.wizard import WizardPanel
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtWidgets import QSizePolicy, QSplitter, QStackedWidget, QVBoxLayout, QWidget
+from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtWidgets import QSizePolicy, QSplitter, QStackedWidget, QVBoxLayout, QWidget
 
 from ..analysis.ponceau import PonceauAnalyzer
 from ..analysis.state import AnalysisState
@@ -52,14 +52,14 @@ class _WesternBlotWizardPanel(WizardPanel):
     each of them onward.
     """
 
-    image_changed = pyqtSignal(object)
-    lanes_detected = pyqtSignal(object)
-    bands_detected = pyqtSignal(object, object)
-    results_ready = pyqtSignal(object)
-    selected_bands_changed = pyqtSignal(list)
-    peak_picking_enabled = pyqtSignal(bool)
-    crop_mode_toggled = pyqtSignal(bool)
-    profile_hovered = pyqtSignal(int, float)
+    image_changed = Signal(object)
+    lanes_detected = Signal(object)
+    bands_detected = Signal(object, object)
+    results_ready = Signal(object)
+    selected_bands_changed = Signal(list)
+    peak_picking_enabled = Signal(bool)
+    crop_mode_toggled = Signal(bool)
+    profile_hovered = Signal(int, float)
 
     def set_canvas(self, canvas: Any) -> None:
         """Store the shared ImageCanvas and hand it to steps that render on it.
@@ -83,20 +83,20 @@ class WesternBlotPanel(PluginBase):
 
     # ── Signals ───────────────────────────────────────────────────────
     # state_changed and status_message are now handle by PluginBase
-    image_changed = pyqtSignal(object)
-    lanes_detected = pyqtSignal(object)
-    bands_detected = pyqtSignal(object, object)
-    results_ready = pyqtSignal(object)
-    selected_bands_changed = pyqtSignal(list)
-    peak_picking_enabled = pyqtSignal(bool)
-    crop_mode_toggled = pyqtSignal(bool)
-    profile_hovered = pyqtSignal(int, float)
+    image_changed = Signal(object)
+    lanes_detected = Signal(object)
+    bands_detected = Signal(object, object)
+    results_ready = Signal(object)
+    selected_bands_changed = Signal(list)
+    peak_picking_enabled = Signal(bool)
+    crop_mode_toggled = Signal(bool)
+    profile_hovered = Signal(int, float)
 
     # ── Loading-screen protocol (see karcytics_sdk.plugin.base.PluginBase) ──
     # PluginLoaderManager duck-types hasattr(panel, "panel_ready") and drives
     # the "Loading workspace data…" transition off these two signals.
-    panel_ready = pyqtSignal()
-    data_ready = pyqtSignal()
+    panel_ready = Signal()
+    data_ready = Signal()
 
     def __init__(self, parent=None) -> None:
         super().__init__("western_blot", parent)
@@ -183,34 +183,19 @@ class WesternBlotPanel(PluginBase):
         self.profile_hovered.connect(self._handle_profile_hovered)
 
         # ── NEW: Canvas -> Plugin Wiring ────────────────────────────────
-        try:
-            self._canvas.band_clicked.disconnect()
-        except Exception:
-            pass
+        safe_disconnect(self._canvas.band_clicked)
         self._canvas.band_clicked.connect(self.on_band_clicked)
 
-        try:
-            self._canvas.peak_pick_requested.disconnect()
-        except Exception:
-            pass
+        safe_disconnect(self._canvas.peak_pick_requested)
         self._canvas.peak_pick_requested.connect(self.on_peak_pick_requested)
 
-        try:
-            self._canvas.crop_requested.disconnect()
-        except Exception:
-            pass
+        safe_disconnect(self._canvas.crop_requested)
         self._canvas.crop_requested.connect(self.on_crop_requested)
 
-        try:
-            self._canvas.band_right_clicked.disconnect()
-        except Exception:
-            pass
+        safe_disconnect(self._canvas.band_right_clicked)
         self._canvas.band_right_clicked.connect(self.on_band_right_clicked)
 
-        try:
-            self._canvas.canvas_range_selected.disconnect()
-        except Exception:
-            pass
+        safe_disconnect(self._canvas.canvas_range_selected)
         self._canvas.canvas_range_selected.connect(self.on_canvas_range_selected)
 
     def _handle_profile_hovered(self, lane_idx: int, y_pos: float) -> None:
@@ -316,10 +301,7 @@ class WesternBlotPanel(PluginBase):
         # Store reference so set_results_widget can wire the spinner
         self._wb_results_step = wb_results
 
-        try:
-            self.results_widget._spin_slots.valueChanged.disconnect()
-        except Exception:
-            pass
+        safe_disconnect(self.results_widget._spin_slots.valueChanged)
 
         def _on_slots_changed(n: int) -> None:
             self.results_widget._rebuild_slots(n)
@@ -671,7 +653,7 @@ class WesternBlotPanel(PluginBase):
             if img_path:
                 import os
 
-                from PyQt6.QtWidgets import QMessageBox
+                from PySide6.QtWidgets import QMessageBox
 
                 if not os.path.exists(img_path):
                     QMessageBox.warning(

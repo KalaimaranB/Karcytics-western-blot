@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QGuiApplication
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QGuiApplication
+from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
     QHBoxLayout,
@@ -39,10 +39,10 @@ class LaneProfileDialog(QDialog):
         profile_band_removed(lane_idx, y_pos): Right-click on marker.
     """
 
-    profile_hovered = pyqtSignal(int, float)
-    profile_clicked = pyqtSignal(int, float, bool)
-    profile_range_selected = pyqtSignal(int, float, float, bool)
-    profile_band_removed = pyqtSignal(int, float)
+    profile_hovered = Signal(int, float)
+    profile_clicked = Signal(int, float, bool)
+    profile_range_selected = Signal(int, float, float, bool)
+    profile_band_removed = Signal(int, float)
 
     def __init__(self, state: AnalysisState, parent=None) -> None:
         super().__init__(parent)

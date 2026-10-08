@@ -1,7 +1,7 @@
 """Base class for all Wizard steps to eliminate boilerplate."""
 
 from karcytics_sdk.plugin import HeaderLabel, SubtitleLabel
-from PyQt6.QtWidgets import QVBoxLayout, QWidget
+from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 
 class BaseStepWidget(QWidget):

@@ -6,7 +6,7 @@ import logging
 
 from karcytics_sdk.plugin import WizardPanel
 from karcytics_sdk.plugin.theme_fallback import Colors
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QGroupBox,
@@ -185,7 +185,7 @@ class PonceauBandsStep(BaseBandsStep):
         det_layout = QVBoxLayout(det_group)
         det_layout.setSpacing(8)
 
-        from PyQt6.QtWidgets import QDoubleSpinBox, QSpinBox
+        from PySide6.QtWidgets import QDoubleSpinBox, QSpinBox
 
         self.spin_snr = QDoubleSpinBox()
         self.spin_snr.setRange(1.0, 10.0)

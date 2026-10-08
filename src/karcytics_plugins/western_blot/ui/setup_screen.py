@@ -12,8 +12,8 @@ Adding a new option in future means adding one checkbox here and one
 from __future__ import annotations
 
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import (
     QCheckBox,
     QFrame,
     QHBoxLayout,
@@ -115,7 +115,7 @@ class SetupScreen(QWidget):
             Ponceau stain stage should be included.
     """
 
-    analysis_requested = pyqtSignal(bool)  # include_ponceau
+    analysis_requested = Signal(bool)  # include_ponceau
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
