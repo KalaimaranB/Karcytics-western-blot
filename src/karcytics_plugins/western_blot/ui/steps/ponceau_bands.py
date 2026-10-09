@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 
 from karcytics_sdk.plugin import WizardPanel
-from karcytics_sdk.plugin.theme_fallback import Colors
+from karcytics_sdk.plugin.theme_fallback import Colors, theme_manager
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -30,6 +30,18 @@ class _FactorChart(QWidget):
         self.fig = None
         self.canvas = None
         self.ax = None
+        self._last_plot: tuple[dict[int, float], int, str] | None = None
+        theme_manager.theme_changed.connect(self._on_theme_changed)
+
+    def _on_theme_changed(self) -> None:
+        """Redraw with the new palette — matplotlib bakes colours in at draw time."""
+        if self.canvas is None:
+            return
+        self.fig.patch.set_facecolor(Colors.BG_DARK)
+        if self._last_plot is None:
+            self._draw_empty()
+        else:
+            self.plot_factors(*self._last_plot)
 
     def _ensure_canvas(self):
         if self.canvas is not None:
@@ -46,7 +58,7 @@ class _FactorChart(QWidget):
         self.ax = self.fig.add_subplot(111)
         self.canvas = FigureCanvasQTAgg(self.fig)
         self.layout().addWidget(self.canvas)
-        self.canvas.setStyleSheet(f"background-color: {Colors.BG_DARK};")
+        theme_manager.apply_style(self.canvas, "background-color: {BG_DARK};")
 
     def _draw_empty(self) -> None:
         self._ensure_canvas()
@@ -76,6 +88,7 @@ class _FactorChart(QWidget):
         label_prefix: str = "WB",
     ) -> None:
         self._ensure_canvas()
+        self._last_plot = (factors, num_lanes, label_prefix)
         self.ax.clear()
         self.ax.set_facecolor(Colors.BG_DARK)
 
@@ -307,11 +320,11 @@ class PonceauBandsStep(BaseBandsStep):
 
         self.lbl_ref_status.setText("\n".join(lines))
         if all_set:
-            self.lbl_ref_status.setStyleSheet(f"color: {Colors.SUCCESS};")
+            theme_manager.apply_style(self.lbl_ref_status, "color: {ACCENT_SUCCESS};")
         elif any("\u26a0" in line for line in lines):
-            self.lbl_ref_status.setStyleSheet(f"color: {Colors.ACCENT_WARNING};")
+            theme_manager.apply_style(self.lbl_ref_status, "color: {ACCENT_WARNING};")
         else:
-            self.lbl_ref_status.setStyleSheet(f"color: {Colors.FG_SECONDARY};")
+            theme_manager.apply_style(self.lbl_ref_status, "color: {FG_SECONDARY};")
 
     def on_next(self, panel: WizardPanel) -> bool:
         if not panel.ponceau_analyzer.state.bands:
@@ -341,7 +354,7 @@ class PonceauBandsStep(BaseBandsStep):
 
             self.btn_detect.setEnabled(False)
             self.lbl_status.setText("⌛  Detecting Ponceau bands...")
-            self.lbl_status.setStyleSheet(f"color: {Colors.FG_PRIMARY};")
+            theme_manager.apply_style(self.lbl_status, "color: {FG_PRIMARY};")
 
             worker = task_scheduler.submit(analyzer, analyzer.state)
             task_id = getattr(worker, "task_id", "")
@@ -362,7 +375,7 @@ class PonceauBandsStep(BaseBandsStep):
                 self.btn_detect.setEnabled(True)
                 n = len(analyzer.state.bands)
                 self.lbl_status.setText(f"✅  {n} Ponceau bands detected")
-                self.lbl_status.setStyleSheet(f"color: {Colors.SUCCESS};")
+                theme_manager.apply_style(self.lbl_status, "color: {ACCENT_SUCCESS};")
                 self._panel.status_message.emit(f"Ponceau: {n} bands detected")
 
                 self._sync_mode(self._panel)
@@ -377,7 +390,7 @@ class PonceauBandsStep(BaseBandsStep):
 
                 self.btn_detect.setEnabled(True)
                 self.lbl_status.setText(f"❌  {error_msg}")
-                self.lbl_status.setStyleSheet(f"color: {Colors.ACCENT_DANGER};")
+                theme_manager.apply_style(self.lbl_status, "color: {ACCENT_DANGER};")
                 logger.error(f"Ponceau detection task error: {error_msg}")
 
             task_scheduler.task_finished.connect(_on_finished)
@@ -386,7 +399,7 @@ class PonceauBandsStep(BaseBandsStep):
         except Exception as e:
             self.btn_detect.setEnabled(True)
             self.lbl_status.setText(f"❌  {e}")
-            self.lbl_status.setStyleSheet(f"color: {Colors.ACCENT_DANGER};")
+            theme_manager.apply_style(self.lbl_status, "color: {ACCENT_DANGER};")
             logger.exception("Ponceau band detection error during submission")
 
     def _on_mode_changed(self, _idx: int) -> None:

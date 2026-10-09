@@ -36,7 +36,7 @@ class DataTableDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Full Results Table")
         self.resize(920, 520)
-        self.setStyleSheet(f"background: {Colors.BG_DARK};")
+        theme_manager.apply_style(self, "background: {BG_DARK};")
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 12, 12, 12)
@@ -128,7 +128,7 @@ class DensityChart(QWidget):
         self.fig = None
         self.canvas = None
         self.axes = None
-        self.setStyleSheet(f"background-color: {Colors.BG_DARK};")
+        theme_manager.apply_style(self, "background-color: {BG_DARK};")
 
     def _ensure_canvas(self):
         """Lazy loader for Matplotlib components."""
@@ -443,11 +443,12 @@ class ResultsWidget(QWidget):
 
         # Clear button
         btn_clr = QPushButton("✖  Clear All")
-        btn_clr.setStyleSheet(
-            f"QPushButton {{ background: {Colors.BG_MEDIUM};"
-            f" color: {Colors.FG_SECONDARY}; border: 1px solid {Colors.BORDER};"
-            f" border-radius: 5px; padding: 3px 10px; }}"
-            f"QPushButton:hover {{ background: {Colors.BG_LIGHT}; }}"
+        theme_manager.apply_style(
+            btn_clr,
+            "QPushButton { background: {BG_MEDIUM};"
+            " color: {FG_SECONDARY}; border: 1px solid {BORDER};"
+            " border-radius: 5px; padding: 3px 10px; }"
+            "QPushButton:hover { background: {BG_LIGHT}; }",
         )
         btn_clr.clicked.connect(self._clear_all)
         cg_l.addWidget(btn_clr)
@@ -456,7 +457,7 @@ class ResultsWidget(QWidget):
         self.lbl_result = QLabel("")
         self.lbl_result.setWordWrap(True)
         self.lbl_result.setTextFormat(Qt.TextFormat.RichText)
-        self.lbl_result.setStyleSheet(f"color: {Colors.FG_PRIMARY}; font-size: 11px;")
+        theme_manager.apply_style(self.lbl_result, "color: {FG_PRIMARY}; font-size: 11px;")
         cg_l.addWidget(self.lbl_result)
 
         layout.addWidget(cg)
@@ -569,11 +570,12 @@ class ResultsWidget(QWidget):
             c = self._col(i)
             btn = QPushButton(f"Slot {i + 1} — Empty")
             btn.setMinimumHeight(30)
-            btn.setStyleSheet(
+            theme_manager.apply_style(
+                btn,
                 f"QPushButton {{ border: 2px solid {c}; border-radius: 5px;"
-                f" background: {Colors.BG_DARK}; color: {Colors.FG_SECONDARY};"
+                f" background: {{BG_DARK}}; color: {{FG_SECONDARY}};"
                 f" padding: 4px 8px; text-align: left; font-size: 11px; }}"
-                f"QPushButton:hover {{ background: {c}22; color: {c}; font-weight: 600; }}"
+                f"QPushButton:hover {{ background: {c}22; color: {c}; font-weight: 600; }}",
             )
             # Clicking the button now acts as a quick-delete for that slot
             btn.clicked.connect(lambda _, idx=i: self._clear_slot(idx))
@@ -849,7 +851,7 @@ class ResultsWidget(QWidget):
                 f"&nbsp;&nbsp;<span style='color:{warn_color};'>⚠️ Warning: Slots {', '.join(low_snr_slots)} have low SNR (< 3.0). Signal may be background noise.</span>"
             )
         else:
-            success_color = Colors.SUCCESS
+            success_color = Colors.ACCENT_SUCCESS
             lines.append(
                 f"&nbsp;&nbsp;<span style='color:{success_color};'>✅ All selected bands have distinct peaks (SNR > 3.0).</span>"
             )
@@ -898,25 +900,13 @@ class ResultsWidget(QWidget):
 
     def _on_theme_changed(self) -> None:
         """Force Matplotlib and internal styles to redraw when the theme changes."""
-        # 1. Update the Chart Canvas Backgrounds
-        self.chart.fig.patch.set_facecolor(Colors.BG_DARK)
-        self.chart.setStyleSheet(f"background-color: {Colors.BG_DARK};")
+        # The figure is built lazily — nothing to recolour before the first plot.
+        if self.chart.fig is not None:
+            self.chart.fig.patch.set_facecolor(Colors.BG_DARK)
+            self.chart.canvas.draw_idle()
 
-        # 2. Force the chart to redraw with new Colors.CHART_COLORS
+        # Force the chart to redraw with the new palette
         self._refresh_chart()
 
-        # 3. Update the text labels to use the new colors
+        # Update the text labels to use the new colors
         self._render_result()
-
-        # 4. Update the slot buttons
-        for i in range(self._num_slots):
-            c = self._col(i)
-            btn = self._slot_btns[i]
-            btn.setStyleSheet(
-                f"QPushButton {{ border: 2px solid {c}; border-radius: 5px;"
-                f" background: {Colors.BG_DARK}; color: {Colors.FG_SECONDARY};"
-                f" padding: 4px 8px; text-align: left; font-size: 11px; }}"
-                f"QPushButton:checked {{ background: {c}22; color: {c};"
-                f" font-weight: 600; }}"
-                f"QPushButton:hover:!checked {{ background: {c}11; }}"
-            )

@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 
 from karcytics_sdk.plugin import WizardPanel, WizardStep
-from karcytics_sdk.plugin.theme_fallback import Colors
+from karcytics_sdk.plugin.theme_fallback import theme_manager
 from PySide6.QtWidgets import (
     QCheckBox,
     QGroupBox,
@@ -78,10 +78,11 @@ class BaseLanesStep(WizardStep):
         lane_layout.addLayout(self._row("Smoothing:", self.spin_smoothing))
 
         self.btn_detect = QPushButton(self._detect_btn_text)
-        self.btn_detect.setStyleSheet(
-            f"QPushButton {{ background-color: {Colors.ACCENT_PRIMARY}; color: {Colors.BG_DARKEST};"
-            f" border: none; border-radius: 6px; padding: 8px 16px; font-weight: 600; }}"
-            f"QPushButton:hover {{ background-color: {Colors.ACCENT_PRIMARY_HOVER}; }}"
+        theme_manager.apply_style(
+            self.btn_detect,
+            "QPushButton { background-color: {ACCENT_PRIMARY}; color: {BG_DARKEST};"
+            " border: none; border-radius: 6px; padding: 8px 16px; font-weight: 600; }"
+            "QPushButton:hover { background-color: {ACCENT_PRIMARY_HOVER}; }",
         )
         self.btn_detect.setMinimumHeight(36)
         self.btn_detect.clicked.connect(lambda: self.run_detection(panel))
@@ -236,7 +237,7 @@ class BaseLanesStep(WizardStep):
         prefix = self._get_status_prefix()
         self._panel.status_message.emit(f"{prefix}Lane border moved — {len(new_lanes)} lanes.")
         self.lbl_status.setText(f"✅  {len(new_lanes)} lanes (manually adjusted)")
-        self.lbl_status.setStyleSheet(f"color: {Colors.SUCCESS};")
+        theme_manager.apply_style(self.lbl_status, "color: {ACCENT_SUCCESS};")
         self._panel.state_changed.emit()
 
     def _get_default_lane_type(self, index: int) -> str:
@@ -270,7 +271,7 @@ class BaseLanesStep(WizardStep):
 
             self.btn_detect.setEnabled(False)
             self.lbl_status.setText("⌛  Detecting lanes...")
-            self.lbl_status.setStyleSheet(f"color: {Colors.FG_PRIMARY};")
+            theme_manager.apply_style(self.lbl_status, "color: {FG_PRIMARY};")
 
             worker = task_scheduler.submit(analyzer, analyzer.state)
             task_id = getattr(worker, "task_id", "")
@@ -290,7 +291,7 @@ class BaseLanesStep(WizardStep):
                 self.spin_lanes.blockSignals(False)
 
                 self.lbl_status.setText(f"✅  Detected {len(lanes)} lanes")
-                self.lbl_status.setStyleSheet(f"color: {Colors.SUCCESS};")
+                theme_manager.apply_style(self.lbl_status, "color: {ACCENT_SUCCESS};")
 
                 prefix = self._get_status_prefix()
                 panel.status_message.emit(f"{prefix}Detected {len(lanes)} lanes")
@@ -310,7 +311,7 @@ class BaseLanesStep(WizardStep):
 
                 self.btn_detect.setEnabled(True)
                 self.lbl_status.setText(f"❌  {error_msg}")
-                self.lbl_status.setStyleSheet(f"color: {Colors.ACCENT_DANGER};")
+                theme_manager.apply_style(self.lbl_status, "color: {ACCENT_DANGER};")
                 logger.error(f"Lane detection task error: {error_msg}")
 
             task_scheduler.task_finished.connect(_on_finished)
@@ -319,7 +320,7 @@ class BaseLanesStep(WizardStep):
         except Exception as e:
             self.btn_detect.setEnabled(True)
             self.lbl_status.setText(f"❌  {e}")
-            self.lbl_status.setStyleSheet(f"color: {Colors.ACCENT_DANGER};")
+            theme_manager.apply_style(self.lbl_status, "color: {ACCENT_DANGER};")
             logger.exception("Lane detection error during submission")
 
     def _get_status_prefix(self) -> str:
@@ -396,5 +397,5 @@ class BaseLanesStep(WizardStep):
         prefix = self._get_status_prefix()
         self._panel.status_message.emit(f"{prefix}Lane {label} — {len(new_lanes)} lanes.")
         self.lbl_status.setText(f"✅  {len(new_lanes)} lanes ({label})")
-        self.lbl_status.setStyleSheet(f"color: {Colors.SUCCESS};")
+        theme_manager.apply_style(self.lbl_status, "color: {ACCENT_SUCCESS};")
         self._panel.state_changed.emit()

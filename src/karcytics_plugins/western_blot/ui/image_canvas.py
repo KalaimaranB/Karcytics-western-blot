@@ -13,7 +13,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import numpy as np
-from karcytics_sdk.plugin.theme_fallback import Colors
+from karcytics_sdk.plugin.theme_fallback import Colors, theme_manager
 from numpy.typing import NDArray
 from PySide6.QtCore import QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QBrush, QColor, QImage, QPen, QPixmap, QWheelEvent
@@ -88,9 +88,8 @@ class ImageCanvas(QGraphicsView):
         self.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorViewCenter)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        self.setStyleSheet(
-            f"QGraphicsView {{ border: 1px solid {Colors.BORDER};"
-            f" background-color: {Colors.BG_DARKEST}; }}"
+        theme_manager.apply_style(
+            self, "QGraphicsView { border: 1px solid {BORDER}; background-color: {BG_DARKEST}; }"
         )
 
     # ── Image ─────────────────────────────────────────────────────────

@@ -6,7 +6,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from karcytics_sdk.plugin import WizardPanel, WizardStep
-from karcytics_sdk.plugin.theme_fallback import Colors
+from karcytics_sdk.plugin.theme_fallback import theme_manager
 from PySide6.QtWidgets import QCheckBox, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from .base_step import BaseStepWidget
@@ -62,12 +62,13 @@ class BaseBandsStep(WizardStep):
 
         # Common Actions
         self.btn_detect = QPushButton(self._detect_btn_text)
-        self.btn_detect.setStyleSheet(
-            f"QPushButton {{ background-color: {Colors.ACCENT_PRIMARY}; color: {Colors.BG_DARKEST};"
-            f" border: none; border-radius: 6px; padding: 8px 16px; font-weight: 600; }}"
-            f"QPushButton:hover {{ background-color: {Colors.ACCENT_PRIMARY_HOVER}; }}"
-            f"QPushButton:pressed {{ background-color: {Colors.ACCENT_PRIMARY_PRESSED}; }}"
-            f"QPushButton:disabled {{ background-color: {Colors.BG_MEDIUM}; color: {Colors.FG_DISABLED}; }}"
+        theme_manager.apply_style(
+            self.btn_detect,
+            "QPushButton { background-color: {ACCENT_PRIMARY}; color: {BG_DARKEST};"
+            " border: none; border-radius: 6px; padding: 8px 16px; font-weight: 600; }"
+            "QPushButton:hover { background-color: {ACCENT_PRIMARY_HOVER}; }"
+            "QPushButton:pressed { background-color: {ACCENT_PRIMARY_HOVER}; }"
+            "QPushButton:disabled { background-color: {BG_MEDIUM}; color: {FG_DISABLED}; }",
         )
         self.btn_detect.setMinimumHeight(36)
         self.btn_detect.clicked.connect(self._detect_bands)

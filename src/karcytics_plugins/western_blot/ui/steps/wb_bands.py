@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 
 from karcytics_sdk.plugin import WizardPanel
-from karcytics_sdk.plugin.theme_fallback import Colors
+from karcytics_sdk.plugin.theme_fallback import theme_manager
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -192,7 +192,7 @@ class WBBandsStep(BaseBandsStep):
 
             self.btn_detect.setEnabled(False)
             self.lbl_status.setText("⌛  Detecting bands...")
-            self.lbl_status.setStyleSheet(f"color: {Colors.FG_PRIMARY};")
+            theme_manager.apply_style(self.lbl_status, "color: {FG_PRIMARY};")
 
             worker = task_scheduler.submit(analyzer, analyzer.state)
             task_id = getattr(worker, "task_id", "")
@@ -235,7 +235,7 @@ class WBBandsStep(BaseBandsStep):
                     self.lbl_status.setText(
                         f"✅  {len(bands)} bands ({len(sample_bands)} sample)\n{summary}"
                     )
-                self.lbl_status.setStyleSheet(f"color: {Colors.SUCCESS};")
+                theme_manager.apply_style(self.lbl_status, "color: {ACCENT_SUCCESS};")
                 self._panel.status_message.emit(
                     f"Detected {len(bands)} bands ({len(sample_bands)} sample)"
                 )
@@ -249,7 +249,7 @@ class WBBandsStep(BaseBandsStep):
 
                 self.btn_detect.setEnabled(True)
                 self.lbl_status.setText(f"❌  {error_msg}")
-                self.lbl_status.setStyleSheet(f"color: {Colors.ACCENT_DANGER};")
+                theme_manager.apply_style(self.lbl_status, "color: {ACCENT_DANGER};")
                 logger.error(f"Band detection task error: {error_msg}")
 
             task_scheduler.task_finished.connect(_on_finished)
@@ -258,7 +258,7 @@ class WBBandsStep(BaseBandsStep):
         except Exception as e:
             self.btn_detect.setEnabled(True)
             self.lbl_status.setText(f"❌  {e}")
-            self.lbl_status.setStyleSheet(f"color: {Colors.ACCENT_DANGER};")
+            theme_manager.apply_style(self.lbl_status, "color: {ACCENT_DANGER};")
             logger.exception("Band detection error during submission")
 
     def _on_manual_pick_toggled(self, enabled: bool) -> None:

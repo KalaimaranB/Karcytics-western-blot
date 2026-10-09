@@ -1,7 +1,6 @@
 """Ponceau Stain — Step 1: Load & Preprocess."""
 
 from karcytics_sdk.plugin import WizardPanel
-from karcytics_sdk.plugin.theme_fallback import Colors
 
 from .base_load_step import BaseLoadStep
 
@@ -18,9 +17,9 @@ class PonceauLoadStep(BaseLoadStep):
         "The WB image is loaded in the next stage."
     )
     _banner_style = (
-        f"background: {Colors.BG_DARK}; color: {Colors.FG_SECONDARY};"
-        f" border: 1px solid {Colors.BORDER}; border-radius: 6px;"
-        f" padding: 10px; font-size: 11px;"
+        "background: {BG_DARK}; color: {FG_SECONDARY};"
+        " border: 1px solid {BORDER}; border-radius: 6px;"
+        " padding: 10px; font-size: 11px;"
     )
     _file_group_title = "Ponceau S Image"
     _open_btn_text = "📁  Open Ponceau Image File..."
