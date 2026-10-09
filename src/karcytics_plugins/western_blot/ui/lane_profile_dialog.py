@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QGuiApplication
-from PyQt6.QtWidgets import (
+from karcytics_sdk.plugin.theme_fallback import Colors, theme_manager
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QGuiApplication
+from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
     QHBoxLayout,
@@ -39,10 +40,10 @@ class LaneProfileDialog(QDialog):
         profile_band_removed(lane_idx, y_pos): Right-click on marker.
     """
 
-    profile_hovered = pyqtSignal(int, float)
-    profile_clicked = pyqtSignal(int, float, bool)
-    profile_range_selected = pyqtSignal(int, float, float, bool)
-    profile_band_removed = pyqtSignal(int, float)
+    profile_hovered = Signal(int, float)
+    profile_clicked = Signal(int, float, bool)
+    profile_range_selected = Signal(int, float, float, bool)
+    profile_band_removed = Signal(int, float)
 
     def __init__(self, state: AnalysisState, parent=None) -> None:
         super().__init__(parent)
@@ -56,6 +57,7 @@ class LaneProfileDialog(QDialog):
         self._setup_ui()
         self._populate_lanes()
         self._update_plot()
+        theme_manager.theme_changed.connect(self._update_plot)
 
     # ── UI construction ───────────────────────────────────────────────
 
@@ -70,6 +72,10 @@ class LaneProfileDialog(QDialog):
             NavigationToolbar2QT as NavigationToolbar,
         )
         from matplotlib.figure import Figure
+
+        theme_manager.apply_style(
+            self, "QDialog { background: {BG_DARKEST}; } QLabel { color: {FG_PRIMARY}; }"
+        )
 
         layout = QVBoxLayout(self)
         layout.setSpacing(6)
@@ -96,7 +102,9 @@ class LaneProfileDialog(QDialog):
             "Right-click on a marker (▲) to remove that band."
         )
         hint.setWordWrap(True)
-        hint.setStyleSheet("color: #8b949e; font-style: italic; padding: 2px 0;")
+        theme_manager.apply_style(
+            hint, "color: {FG_SECONDARY}; font-style: italic; padding: 2px 0;"
+        )
         layout.addWidget(hint)
 
         # Matplotlib figure
@@ -137,7 +145,12 @@ class LaneProfileDialog(QDialog):
         from matplotlib.widgets import SpanSelector
 
         self.figure.clear()
+        self.figure.patch.set_facecolor(Colors.BG_DARK)
         ax = self.figure.add_subplot(111)
+        ax.set_facecolor(Colors.BG_DARK)
+        ax.tick_params(colors=Colors.FG_SECONDARY)
+        for spine in ax.spines.values():
+            spine.set_color(Colors.BORDER)
 
         idx = self.combo_lane.currentIndex()
 
@@ -148,6 +161,7 @@ class LaneProfileDialog(QDialog):
                 "No profile data available.\nRun 'Detect Bands' first.",
                 ha="center",
                 va="center",
+                color=Colors.FG_SECONDARY,
                 transform=ax.transAxes,
             )
             self.canvas.draw()
@@ -163,14 +177,14 @@ class LaneProfileDialog(QDialog):
         )
 
         x = np.arange(len(display_profile))
-        ax.plot(x, display_profile, label="Density Profile", color="#2c3e50", linewidth=1.5)
+        ax.plot(x, display_profile, label="Density Profile", color=Colors.FG_PRIMARY, linewidth=1.5)
 
         if baseline is not None:
             ax.plot(
                 x,
                 baseline,
                 label="Estimated Baseline",
-                color="#e74c3c",
+                color=Colors.ACCENT_DANGER,
                 linestyle="--",
                 linewidth=1.5,
             )
@@ -179,7 +193,7 @@ class LaneProfileDialog(QDialog):
                 baseline,
                 display_profile,
                 where=(display_profile > baseline).tolist(),
-                color="#3498db",
+                color=Colors.ACCENT_PRIMARY,
                 alpha=0.3,
                 label="Band Area",
             )
@@ -193,10 +207,10 @@ class LaneProfileDialog(QDialog):
                 pos,
                 y_val,
                 marker="^",
-                color="#f39c12",
+                color=Colors.ACCENT_WARNING,
                 markersize=9,
                 zorder=5,
-                markeredgecolor="#c0392b",
+                markeredgecolor=Colors.ACCENT_DANGER,
                 markeredgewidth=0.8,
             )
             if b.width > 0:
@@ -204,18 +218,23 @@ class LaneProfileDialog(QDialog):
                 ax.axvspan(
                     max(0, b.position - half_w),
                     min(len(display_profile) - 1, b.position + half_w),
-                    color="#f1c40f",
+                    color=Colors.ACCENT_WARNING,
                     alpha=0.2,
                 )
 
-        ax.set_title(f"Density Profile — Lane {idx + 1}")
-        ax.set_xlabel("Vertical Position (pixels)")
-        ax.set_ylabel("Intensity")
+        ax.set_title(f"Density Profile — Lane {idx + 1}", color=Colors.FG_PRIMARY)
+        ax.set_xlabel("Vertical Position (pixels)", color=Colors.FG_PRIMARY)
+        ax.set_ylabel("Intensity", color=Colors.FG_PRIMARY)
         # Pixel 0 is at the top of the gel image
         ax.set_xlim(len(display_profile) - 1, 0)
-        ax.grid(True, linestyle=":", alpha=0.6)
+        ax.grid(True, linestyle=":", alpha=0.6, color=Colors.BORDER)
         if baseline is not None or lane_bands:
-            ax.legend(fontsize=8)
+            ax.legend(
+                fontsize=8,
+                facecolor=Colors.BG_MEDIUM,
+                edgecolor=Colors.BORDER,
+                labelcolor=Colors.FG_PRIMARY,
+            )
 
         self.figure.tight_layout()
 
@@ -225,14 +244,14 @@ class LaneProfileDialog(QDialog):
             self._on_span_select,
             "horizontal",
             useblit=True,
-            props=dict(alpha=0.3, facecolor="#f1c40f"),
+            props=dict(alpha=0.3, facecolor=Colors.ACCENT_WARNING),
             interactive=False,
             drag_from_anywhere=False,
         )
         self._drag_active = False
 
         # --- NEW: Initialize the tracking line ---
-        self._hover_line = ax.axvline(x=0, color="red", linestyle="--", alpha=0.5)
+        self._hover_line = ax.axvline(x=0, color=Colors.ACCENT_DANGER, linestyle="--", alpha=0.5)
         self._hover_line.set_visible(False)
         # -----------------------------------------
         self.canvas.draw()

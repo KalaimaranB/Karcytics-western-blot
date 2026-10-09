@@ -5,8 +5,8 @@ from __future__ import annotations
 import logging
 
 from karcytics_sdk.plugin import WizardPanel
-from karcytics_sdk.plugin.theme_fallback import Colors
-from PyQt6.QtWidgets import QComboBox, QGroupBox, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from karcytics_sdk.plugin.theme_fallback import theme_manager
+from PySide6.QtWidgets import QComboBox, QGroupBox, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from .base_lanes_step import BaseLanesStep
 
@@ -70,14 +70,14 @@ class PonceauLanesStep(BaseLanesStep):
             self.lbl_mismatch.setText(
                 f"✅  Ponceau lanes ({pon_count}) match WB lanes ({wb_count})."
             )
-            self.lbl_mismatch.setStyleSheet(f"color: {Colors.SUCCESS};")
+            theme_manager.apply_style(self.lbl_mismatch, "color: {ACCENT_SUCCESS};")
         else:
             self.lbl_mismatch.setText(
                 f"⚠️  Ponceau has {pon_count} lanes but WB has {wb_count} lanes.\n"
                 f"Use the mapping below to assign which Ponceau lane corresponds "
                 f"to each WB lane.  Set extras to 'Skip'."
             )
-            self.lbl_mismatch.setStyleSheet(f"color: {Colors.ACCENT_WARNING};")
+            theme_manager.apply_style(self.lbl_mismatch, "color: {ACCENT_WARNING};")
 
     def _rebuild_mapping(self, pon_lane_count: int) -> None:
         for combo in self._mapping_combos:

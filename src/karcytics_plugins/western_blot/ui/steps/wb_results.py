@@ -7,8 +7,8 @@ import logging
 import pandas as pd
 from karcytics_sdk.plugin import WizardPanel, WizardStep
 from karcytics_sdk.plugin.dialogs import SaveWorkflowDialog
-from karcytics_sdk.plugin.theme_fallback import Colors
-from PyQt6.QtWidgets import (
+from karcytics_sdk.plugin.theme_fallback import theme_manager
+from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QGroupBox,
@@ -200,14 +200,14 @@ class WBResultsStep(WizardStep):
                 f"(mode: {mode}).\n"
                 f"Loading factors will be applied to produce 'Ponceau Normalised' values."
             )
-            self.lbl_ponceau_status.setStyleSheet(f"color: {Colors.SUCCESS};")
+            theme_manager.apply_style(self.lbl_ponceau_status, "color: {ACCENT_SUCCESS};")
             self.chk_use_ponceau.setVisible(True)
         else:
             self.lbl_ponceau_status.setText(
                 "No Ponceau data — results will show WB-only normalisation.\n"
                 "Go back to complete the Ponceau stage to enable loading correction."
             )
-            self.lbl_ponceau_status.setStyleSheet(f"color: {Colors.FG_SECONDARY};")
+            theme_manager.apply_style(self.lbl_ponceau_status, "color: {FG_SECONDARY};")
             self.chk_use_ponceau.setVisible(False)
 
     def _compute_results(self) -> None:

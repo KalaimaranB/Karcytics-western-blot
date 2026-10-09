@@ -1,13 +1,14 @@
 [project]
 name = "western_blot"
-version = "1.2.3"
+version = "1.2.4"
 readme = "README.md"
+license = { file = "LICENSE" }
 requires-python = ">=3.11, <3.13"
 authors = [
   { name = "Kalaimaran Balasothy" },
 ]
 dependencies = [
-    "karcytics-sdk>=2.0.5",
+    "karcytics-sdk>=3.0.0",
     "numpy==1.26.4",
     "pandas==3.0.3",
     "matplotlib==3.11.0",
@@ -92,7 +93,7 @@ mypy_path = "src"
 [[tool.mypy.overrides]]
 # Third-party packages without bundled type stubs
 module = [
-    "PyQt6.*",
+    "PySide6.*",
     "numpy.*",
     "scipy.*",
     "pandas.*",
@@ -101,7 +102,7 @@ module = [
     "mpl_toolkits.*",
     "karcytics_sdk.*",
     "karcytics.*",
-    "sip.*",
+    "shiboken6.*",
 ]
 ignore_missing_imports = true
 
@@ -123,5 +124,5 @@ karcytics-sdk = { path = "../Karcytics-SDK", editable = true }
 
 [dependency-groups]
 dev = [
-    "pyqt6>=6.11.0, <7.0.0",
+    "pyside6-essentials>=6.11.0, <7.0.0",
 ]

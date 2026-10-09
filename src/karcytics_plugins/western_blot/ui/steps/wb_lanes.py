@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 
 from karcytics_sdk.plugin import WizardPanel
-from PyQt6.QtWidgets import QComboBox, QGroupBox, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QComboBox, QGroupBox, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from .base_lanes_step import BaseLanesStep
 

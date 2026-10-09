@@ -19,7 +19,7 @@ select = [
     "RET",    # flake8-return
     "C4",     # flake8-comprehensions
     "ARG",    # flake8-unused-arguments
-    "TID251", # banned imports (PyQt6 in analysis layer)
+    "TID251", # banned imports (PySide6 in analysis layer)
     "T20",    # flake8-print
 ]
 ignore = [
@@ -53,12 +53,12 @@ convention = "google"
 known-first-party = ["karcytics_plugins"]
 
 [lint.flake8-tidy-imports.banned-api]
-"PyQt6" = { msg = "Do not import PyQt6. The analysis layer must not depend on UI frameworks." }
+"PySide6" = { msg = "Do not import PySide6. The analysis layer must not depend on UI frameworks." }
 
 [lint.extend-per-file-ignores]
 # UI files: Qt uses camelCase overrides and optional event args — relax naming/arg rules
 "**/ui/**/*.py" = [
-    "TID251",   # PyQt6 allowed in UI
+    "TID251",   # PySide6 allowed in UI
     "N802", "N803", "N806", "N815",  # Qt camelCase conventions
     "ARG001", "ARG002", "ARG005",    # Qt event handlers have mandatory unused args
     "PLR0912", "PLR0917",            # Complex Qt widget methods are unavoidable

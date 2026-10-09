@@ -4,7 +4,7 @@
 Mirrors the audit steps inside Karcytics-SDK's
 PluginSigner.project_sign_plugin (the pyproject.toml manifest-binding
 check and the per-file hash audit) without needing karcytics_sdk
-importable (which pulls in PyQt6) or the CI project key — just enough
+importable (which pulls in PySide6) or the CI project key — just enough
 to answer "would CI's project-sign step reject this?" in under a
 second, so a stale signature fails at commit/push time or at the start
 of CI, not after the full lint+test matrix has already run.

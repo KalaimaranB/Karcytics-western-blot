@@ -17,7 +17,7 @@ The Karcytics Western Blot plugin treats gel images as a series of 1D intensity 
 
 ## Technical Core
 - **Engine**: Python / NumPy / SciPy / Scikit-Image
-- **UI**: PyQt6 / Matplotlib
+- **UI**: PySide6 / Matplotlib
 - **Methodology**: 1D Vertical Projection + Rolling Ball Morphological Top-Hat
 
 ## Development

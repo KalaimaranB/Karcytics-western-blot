@@ -10,9 +10,9 @@ from pathlib import Path
 
 import numpy as np
 from karcytics_sdk.plugin import PrimaryButton, WizardPanel, WizardStep, get_image_path, show_error
-from karcytics_sdk.plugin.theme_fallback import Colors
-from PyQt6.QtCore import QRectF
-from PyQt6.QtWidgets import (
+from karcytics_sdk.plugin.theme_fallback import theme_manager
+from PySide6.QtCore import QRectF
+from PySide6.QtWidgets import (
     QCheckBox,
     QDoubleSpinBox,
     QGroupBox,
@@ -65,7 +65,7 @@ class BaseLoadStep(WizardStep):
             banner = QLabel(self._banner_text)
             banner.setWordWrap(True)
             if self._banner_style:
-                banner.setStyleSheet(self._banner_style)
+                theme_manager.apply_style(banner, self._banner_style)
             layout.addWidget(banner)
 
         # File picker
@@ -107,11 +107,12 @@ class BaseLoadStep(WizardStep):
             btn = QPushButton(lbl)
             btn.setMinimumHeight(28)
             btn.setToolTip(f"Add {delta}° to current rotation")
-            btn.setStyleSheet(
-                f"QPushButton {{ background: {Colors.BG_MEDIUM}; color: {Colors.FG_PRIMARY};"
-                f" border: 1px solid {Colors.BORDER}; border-radius: 5px;"
-                f" padding: 3px 6px; font-size: 11px; }}"
-                f"QPushButton:hover {{ background: {Colors.BG_LIGHT}; }}"
+            theme_manager.apply_style(
+                btn,
+                "QPushButton { background: {BG_MEDIUM}; color: {FG_PRIMARY};"
+                " border: 1px solid {BORDER}; border-radius: 5px;"
+                " padding: 3px 6px; font-size: 11px; }"
+                "QPushButton:hover { background: {BG_LIGHT}; }",
             )
             btn.clicked.connect(lambda _, d=delta: self._rotate_by(d))
             rot_btn_row.addWidget(btn)
@@ -176,11 +177,12 @@ class BaseLoadStep(WizardStep):
 
         confirm_row = QHBoxLayout()
         self.btn_confirm_crop = QPushButton("✅  Confirm Crop")
-        self.btn_confirm_crop.setStyleSheet(
-            f"QPushButton {{ background-color: {Colors.ACCENT_PRIMARY}; color: {Colors.BG_DARKEST};"
-            f" border: none; border-radius: 6px; padding: 7px 14px; font-weight: 600; }}"
-            f"QPushButton:hover {{ background-color: {Colors.ACCENT_PRIMARY_HOVER}; }}"
-            f"QPushButton:pressed {{ background-color: {Colors.ACCENT_PRIMARY_PRESSED}; }}"
+        theme_manager.apply_style(
+            self.btn_confirm_crop,
+            "QPushButton { background-color: {ACCENT_PRIMARY}; color: {BG_DARKEST};"
+            " border: none; border-radius: 6px; padding: 7px 14px; font-weight: 600; }"
+            "QPushButton:hover { background-color: {ACCENT_PRIMARY_HOVER}; }"
+            "QPushButton:pressed { background-color: {ACCENT_PRIMARY_HOVER}; }",
         )
         self.btn_confirm_crop.setMinimumHeight(34)
         self.btn_confirm_crop.setVisible(False)
@@ -188,10 +190,11 @@ class BaseLoadStep(WizardStep):
         confirm_row.addWidget(self.btn_confirm_crop)
 
         self.btn_cancel_crop = QPushButton("✖  Cancel")
-        self.btn_cancel_crop.setStyleSheet(
-            f"QPushButton {{ background-color: {Colors.BG_MEDIUM}; color: {Colors.FG_PRIMARY};"
-            f" border: 1px solid {Colors.BORDER}; border-radius: 6px; padding: 7px 14px; }}"
-            f"QPushButton:hover {{ background-color: {Colors.BG_LIGHT}; }}"
+        theme_manager.apply_style(
+            self.btn_cancel_crop,
+            "QPushButton { background-color: {BG_MEDIUM}; color: {FG_PRIMARY};"
+            " border: 1px solid {BORDER}; border-radius: 6px; padding: 7px 14px; }"
+            "QPushButton:hover { background-color: {BG_LIGHT}; }",
         )
         self.btn_cancel_crop.setMinimumHeight(34)
         self.btn_cancel_crop.setVisible(False)
@@ -567,7 +570,7 @@ class BaseLoadStep(WizardStep):
                 self._panel.image_changed.emit(base)
             crop = analyzer.state.manual_crop_rect
             if crop is not None and self._canvas is not None:
-                from PyQt6.QtCore import QRectF
+                from PySide6.QtCore import QRectF
 
                 x, y, w, h = crop
                 self._canvas.show_crop_preview(QRectF(x, y, w, h))

@@ -5,9 +5,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from karcytics_sdk.plugin.theme_fallback import Colors
-from PyQt6.QtCore import QPointF, QRectF, Qt
-from PyQt6.QtGui import QBrush, QColor, QCursor, QPen
-from PyQt6.QtWidgets import QGraphicsLineItem, QGraphicsRectItem
+from PySide6.QtCore import QPointF, QRectF, Qt
+from PySide6.QtGui import QBrush, QColor, QCursor, QPen
+from PySide6.QtWidgets import QGraphicsLineItem, QGraphicsRectItem
 
 if TYPE_CHECKING:
     from .image_canvas import ImageCanvas

@@ -13,11 +13,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import numpy as np
-from karcytics_sdk.plugin.theme_fallback import Colors
+from karcytics_sdk.plugin.theme_fallback import Colors, theme_manager
 from numpy.typing import NDArray
-from PyQt6.QtCore import QPointF, QRectF, Qt, pyqtSignal
-from PyQt6.QtGui import QBrush, QColor, QImage, QPen, QPixmap, QWheelEvent
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import QPointF, QRectF, Qt, Signal
+from PySide6.QtGui import QBrush, QColor, QImage, QPen, QPixmap, QWheelEvent
+from PySide6.QtWidgets import (
     QGraphicsPixmapItem,
     QGraphicsRectItem,
     QGraphicsScene,
@@ -40,16 +40,16 @@ if TYPE_CHECKING:
 class ImageCanvas(QGraphicsView):
     """Zoomable, pannable image viewer with overlay support."""
 
-    image_loaded = pyqtSignal()
-    zoom_changed = pyqtSignal(float)
-    band_clicked = pyqtSignal(object)
-    crop_requested = pyqtSignal(QRectF)
-    lane_border_changed = pyqtSignal(int, float)  # border_idx, new_x
-    lane_context_action = pyqtSignal(str, float)  # ("split"|"insert_gap"|"merge", x_pos)
-    band_right_clicked = pyqtSignal(int, float)
+    image_loaded = Signal()
+    zoom_changed = Signal(float)
+    band_clicked = Signal(object)
+    crop_requested = Signal(QRectF)
+    lane_border_changed = Signal(int, float)  # border_idx, new_x
+    lane_context_action = Signal(str, float)  # ("split"|"insert_gap"|"merge", x_pos)
+    band_right_clicked = Signal(int, float)
 
-    peak_pick_requested = pyqtSignal(float, float, bool)
-    canvas_range_selected = pyqtSignal(int, float, float, bool)
+    peak_pick_requested = Signal(float, float, bool)
+    canvas_range_selected = Signal(int, float, float, bool)
 
     _MIN_ZOOM = 0.1
     _MAX_ZOOM = 20.0
@@ -88,9 +88,8 @@ class ImageCanvas(QGraphicsView):
         self.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorViewCenter)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        self.setStyleSheet(
-            f"QGraphicsView {{ border: 1px solid {Colors.BORDER};"
-            f" background-color: {Colors.BG_DARKEST}; }}"
+        theme_manager.apply_style(
+            self, "QGraphicsView { border: 1px solid {BORDER}; background-color: {BG_DARKEST}; }"
         )
 
     # ── Image ─────────────────────────────────────────────────────────

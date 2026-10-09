@@ -20,7 +20,7 @@ The UI consists of a `WesternBlotPanel` which contains a `QStackedWidget`. Each 
 
 ## 3. Communication System (Signals)
 
-Steps communicate via the parent `WesternBlotPanel` through dedicated `pyqtSignal` events:
+Steps communicate via the parent `WesternBlotPanel` through dedicated `Signal` events:
 
 - `image_changed`: Fired when invert, contrast, or rotation is updated.
 - `lanes_detected`: Fired after a lane-detection pass or manual adjustment.
